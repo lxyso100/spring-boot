@@ -16,15 +16,19 @@
 
 package org.springframework.boot.actuate.couchbase;
 
-import com.couchbase.client.java.bucket.BucketInfo;
-import com.couchbase.client.java.cluster.ClusterInfo;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import com.couchbase.client.core.message.internal.DiagnosticsReport;
+import com.couchbase.client.core.message.internal.EndpointHealth;
+import com.couchbase.client.core.state.LifecycleState;
+import com.couchbase.client.java.Cluster;
 
 import org.springframework.boot.actuate.health.AbstractHealthIndicator;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.HealthIndicator;
-import org.springframework.data.couchbase.core.CouchbaseOperations;
 import org.springframework.util.Assert;
-import org.springframework.util.StringUtils;
 
 /**
  * {@link HealthIndicator} for Couchbase.
@@ -35,26 +39,47 @@ import org.springframework.util.StringUtils;
  */
 public class CouchbaseHealthIndicator extends AbstractHealthIndicator {
 
-	private CouchbaseOperations operations;
+	private final Cluster cluster;
 
-	public CouchbaseHealthIndicator() {
+	/**
+	 * Create an indicator with the specified {@link Cluster}.
+	 * @param cluster the Couchbase Cluster
+	 * @since 2.0.6
+	 */
+	public CouchbaseHealthIndicator(Cluster cluster) {
 		super("Couchbase health check failed");
-	}
-
-	public CouchbaseHealthIndicator(CouchbaseOperations couchbaseOperations) {
-		super("Couchbase health check failed");
-		Assert.notNull(couchbaseOperations, "CouchbaseOperations must not be null");
-		this.operations = couchbaseOperations;
+		Assert.notNull(cluster, "Cluster must not be null");
+		this.cluster = cluster;
 	}
 
 	@Override
 	protected void doHealthCheck(Health.Builder builder) throws Exception {
-		ClusterInfo cluster = this.operations.getCouchbaseClusterInfo();
-		BucketInfo bucket = this.operations.getCouchbaseBucket().bucketManager().info();
-		String versions = StringUtils
-				.collectionToCommaDelimitedString(cluster.getAllVersions());
-		String nodes = StringUtils.collectionToCommaDelimitedString(bucket.nodeList());
-		builder.up().withDetail("versions", versions).withDetail("nodes", nodes);
+		DiagnosticsReport diagnostics = this.cluster.diagnostics();
+		builder = isCouchbaseUp(diagnostics) ? builder.up() : builder.down();
+		builder.withDetail("sdk", diagnostics.sdk());
+		builder.withDetail("endpoints", diagnostics.endpoints().stream()
+				.map(this::describe).collect(Collectors.toList()));
+	}
+
+	private boolean isCouchbaseUp(DiagnosticsReport diagnostics) {
+		for (EndpointHealth health : diagnostics.endpoints()) {
+			LifecycleState state = health.state();
+			if (state != LifecycleState.CONNECTED && state != LifecycleState.IDLE) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	private Map<String, Object> describe(EndpointHealth endpointHealth) {
+		Map<String, Object> map = new HashMap<>();
+		map.put("id", endpointHealth.id());
+		map.put("lastActivity", endpointHealth.lastActivity());
+		map.put("local", endpointHealth.local().toString());
+		map.put("remote", endpointHealth.remote().toString());
+		map.put("state", endpointHealth.state());
+		map.put("type", endpointHealth.type());
+		return map;
 	}
 
 }

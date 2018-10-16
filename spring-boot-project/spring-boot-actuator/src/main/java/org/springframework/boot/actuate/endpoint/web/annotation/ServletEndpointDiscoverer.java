@@ -20,6 +20,7 @@ import java.util.Collection;
 import java.util.Collections;
 
 import org.springframework.boot.actuate.endpoint.EndpointFilter;
+import org.springframework.boot.actuate.endpoint.EndpointId;
 import org.springframework.boot.actuate.endpoint.Operation;
 import org.springframework.boot.actuate.endpoint.annotation.DiscoveredOperationMethod;
 import org.springframework.boot.actuate.endpoint.annotation.EndpointDiscoverer;
@@ -30,6 +31,7 @@ import org.springframework.boot.actuate.endpoint.web.PathMapper;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.util.Assert;
+import org.springframework.util.ClassUtils;
 
 /**
  * {@link EndpointDiscoverer} for {@link ExposableServletEndpoint servlet endpoints}.
@@ -60,12 +62,12 @@ public class ServletEndpointDiscoverer
 
 	@Override
 	protected boolean isEndpointExposed(Object endpointBean) {
-		Class<?> type = endpointBean.getClass();
+		Class<?> type = ClassUtils.getUserClass(endpointBean.getClass());
 		return AnnotatedElementUtils.isAnnotated(type, ServletEndpoint.class);
 	}
 
 	@Override
-	protected ExposableServletEndpoint createEndpoint(Object endpointBean, String id,
+	protected ExposableServletEndpoint createEndpoint(Object endpointBean, EndpointId id,
 			boolean enabledByDefault, Collection<Operation> operations) {
 		String rootPath = this.endpointPathMapper.getRootPath(id);
 		return new DiscoveredServletEndpoint(this, endpointBean, id, rootPath,
@@ -73,7 +75,7 @@ public class ServletEndpointDiscoverer
 	}
 
 	@Override
-	protected Operation createOperation(String endpointId,
+	protected Operation createOperation(EndpointId endpointId,
 			DiscoveredOperationMethod operationMethod, OperationInvoker invoker) {
 		throw new IllegalStateException("ServletEndpoints must not declare operations");
 	}

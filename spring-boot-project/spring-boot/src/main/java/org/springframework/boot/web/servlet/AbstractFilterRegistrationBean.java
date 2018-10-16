@@ -41,13 +41,17 @@ import org.springframework.util.StringUtils;
  *
  * @param <T> the type of {@link Filter} to register
  * @author Phillip Webb
+ * @since 2.0.1
  */
-abstract class AbstractFilterRegistrationBean<T extends Filter>
+public abstract class AbstractFilterRegistrationBean<T extends Filter>
 		extends DynamicRegistrationBean<Dynamic> {
 
 	/**
 	 * Filters that wrap the servlet request should be ordered less than or equal to this.
+	 * @deprecated since 2.1.0 in favor of
+	 * {@code OrderedFilter.REQUEST_WRAPPER_FILTER_MAX_ORDER}
 	 */
+	@Deprecated
 	protected static final int REQUEST_WRAPPER_FILTER_MAX_ORDER = 0;
 
 	private final Log logger = LogFactory.getLog(getClass());
@@ -153,8 +157,8 @@ abstract class AbstractFilterRegistrationBean<T extends Filter>
 	}
 
 	/**
-	 * Return a mutable collection of URL patterns that the filter will be registered
-	 * against.
+	 * Return a mutable collection of URL patterns, as defined in the Servlet
+	 * specification, that the filter will be registered against.
 	 * @return the URL patterns
 	 */
 	public Collection<String> getUrlPatterns() {
@@ -162,7 +166,8 @@ abstract class AbstractFilterRegistrationBean<T extends Filter>
 	}
 
 	/**
-	 * Add URL patterns that the filter will be registered against.
+	 * Add URL patterns, as defined in the Servlet specification, that the filter will be
+	 * registered against.
 	 * @param urlPatterns the URL patterns
 	 */
 	public void addUrlPatterns(String... urlPatterns) {
