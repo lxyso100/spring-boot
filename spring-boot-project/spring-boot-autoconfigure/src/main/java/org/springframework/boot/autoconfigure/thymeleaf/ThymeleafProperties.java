@@ -1,11 +1,11 @@
 /*
- * Copyright 2012-2018 the original author or authors.
+ * Copyright 2012-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -100,6 +100,12 @@ public class ThymeleafProperties {
 	 * Enable the SpringEL compiler in SpringEL expressions.
 	 */
 	private boolean enableSpringElCompiler;
+
+	/**
+	 * Whether hidden form inputs acting as markers for checkboxes should be rendered
+	 * before the checkbox element itself.
+	 */
+	private boolean renderHiddenMarkersBeforeCheckboxes = false;
 
 	/**
 	 * Whether to enable Thymeleaf view resolution for Web frameworks.
@@ -206,6 +212,14 @@ public class ThymeleafProperties {
 		this.enableSpringElCompiler = enableSpringElCompiler;
 	}
 
+	public boolean isRenderHiddenMarkersBeforeCheckboxes() {
+		return this.renderHiddenMarkersBeforeCheckboxes;
+	}
+
+	public void setRenderHiddenMarkersBeforeCheckboxes(boolean renderHiddenMarkersBeforeCheckboxes) {
+		this.renderHiddenMarkersBeforeCheckboxes = renderHiddenMarkersBeforeCheckboxes;
+	}
+
 	public Reactive getReactive() {
 		return this.reactive;
 	}
@@ -221,12 +235,26 @@ public class ThymeleafProperties {
 		 */
 		private MimeType contentType = MimeType.valueOf("text/html");
 
+		/**
+		 * Whether Thymeleaf should start writing partial output as soon as possible or
+		 * buffer until template processing is finished.
+		 */
+		private boolean producePartialOutputWhileProcessing = true;
+
 		public MimeType getContentType() {
 			return this.contentType;
 		}
 
 		public void setContentType(MimeType contentType) {
 			this.contentType = contentType;
+		}
+
+		public boolean isProducePartialOutputWhileProcessing() {
+			return this.producePartialOutputWhileProcessing;
+		}
+
+		public void setProducePartialOutputWhileProcessing(boolean producePartialOutputWhileProcessing) {
+			this.producePartialOutputWhileProcessing = producePartialOutputWhileProcessing;
 		}
 
 	}

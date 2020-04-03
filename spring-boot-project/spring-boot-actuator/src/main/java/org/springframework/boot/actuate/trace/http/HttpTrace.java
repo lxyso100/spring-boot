@@ -1,11 +1,11 @@
 /*
- * Copyright 2012-2018 the original author or authors.
+ * Copyright 2012-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -47,7 +47,7 @@ public final class HttpTrace {
 	private volatile Long timeTaken;
 
 	/**
-	 * Creates a fully-configured {@code HttpTrace} instance. Primarly for use by
+	 * Creates a fully-configured {@code HttpTrace} instance. Primarily for use by
 	 * {@link HttpTraceRepository} implementations when recreating a trace from a
 	 * persistent store.
 	 * @param request the request
@@ -59,8 +59,8 @@ public final class HttpTrace {
 	 * exchange, if known
 	 * @since 2.1.0
 	 */
-	public HttpTrace(Request request, Response response, Instant timestamp,
-			Principal principal, Session session, Long timeTaken) {
+	public HttpTrace(Request request, Response response, Instant timestamp, Principal principal, Session session,
+			Long timeTaken) {
 		this.request = request;
 		this.response = response;
 		this.timestamp = timestamp;
@@ -132,12 +132,11 @@ public final class HttpTrace {
 		private final String remoteAddress;
 
 		private Request(TraceableRequest request) {
-			this(request.getMethod(), request.getUri(), request.getHeaders(),
-					request.getRemoteAddress());
+			this(request.getMethod(), request.getUri(), request.getHeaders(), request.getRemoteAddress());
 		}
 
 		/**
-		 * Creates a fully-configured {@code Request} instance. Primarly for use by
+		 * Creates a fully-configured {@code Request} instance. Primarily for use by
 		 * {@link HttpTraceRepository} implementations when recreating a request from a
 		 * persistent store.
 		 * @param method the HTTP method of the request
@@ -146,8 +145,7 @@ public final class HttpTrace {
 		 * @param remoteAddress remote address from which the request was sent, if known
 		 * @since 2.1.0
 		 */
-		public Request(String method, URI uri, Map<String, List<String>> headers,
-				String remoteAddress) {
+		public Request(String method, URI uri, Map<String, List<String>> headers, String remoteAddress) {
 			this.method = method;
 			this.uri = uri;
 			this.headers = new LinkedHashMap<>(headers);
@@ -186,7 +184,7 @@ public final class HttpTrace {
 		}
 
 		/**
-		 * Creates a fully-configured {@code Response} instance. Primarly for use by
+		 * Creates a fully-configured {@code Response} instance. Primarily for use by
 		 * {@link HttpTraceRepository} implementations when recreating a response from a
 		 * persistent store.
 		 * @param status the status of the response

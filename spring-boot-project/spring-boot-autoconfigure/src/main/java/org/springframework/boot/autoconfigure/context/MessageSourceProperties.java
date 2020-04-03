@@ -1,11 +1,11 @@
 /*
- * Copyright 2012-2018 the original author or authors.
+ * Copyright 2012-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -71,12 +71,6 @@ public class MessageSourceProperties {
 	 */
 	private boolean useCodeAsDefaultMessage = false;
 
-	/**
-	 * Whether to use a "ReloadableResourceBundleMessageSource" rather than the default
-	 * "ResourceBundleMessageSource". Recommended during development only.
-	 */
-	private boolean reloadable = false;
-
 	public String getBasename() {
 		return this.basename;
 	}
@@ -123,14 +117,6 @@ public class MessageSourceProperties {
 
 	public void setUseCodeAsDefaultMessage(boolean useCodeAsDefaultMessage) {
 		this.useCodeAsDefaultMessage = useCodeAsDefaultMessage;
-	}
-
-	public boolean isReloadable() {
-		return this.reloadable;
-	}
-
-	public void setReloadable(boolean reloadable) {
-		this.reloadable = reloadable;
 	}
 
 }

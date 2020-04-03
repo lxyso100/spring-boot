@@ -1,11 +1,11 @@
 /*
- * Copyright 2012-2018 the original author or authors.
+ * Copyright 2012-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,91 +15,70 @@
  */
 package org.springframework.boot.actuate.couchbase;
 
-import java.net.InetAddress;
+import java.time.Duration;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
-import com.couchbase.client.java.Bucket;
-import com.couchbase.client.java.bucket.AsyncBucketManager;
-import com.couchbase.client.java.bucket.BucketInfo;
-import com.couchbase.client.java.bucket.BucketManager;
-import com.couchbase.client.java.cluster.ClusterInfo;
-import com.couchbase.client.java.error.TranscodingException;
-import com.couchbase.client.java.util.features.Version;
-import org.junit.Test;
-import reactor.core.publisher.Mono;
-import reactor.test.StepVerifier;
-import rx.Observable;
+import com.couchbase.client.core.diagnostics.DiagnosticsResult;
+import com.couchbase.client.core.diagnostics.EndpointDiagnostics;
+import com.couchbase.client.core.endpoint.EndpointState;
+import com.couchbase.client.core.service.ServiceType;
+import com.couchbase.client.java.Cluster;
+import org.junit.jupiter.api.Test;
 
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.Status;
-import org.springframework.data.couchbase.core.RxJavaCouchbaseOperations;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 /**
  * Tests for {@link CouchbaseReactiveHealthIndicator}.
  */
-public class CouchbaseReactiveHealthIndicatorTests {
+class CouchbaseReactiveHealthIndicatorTests {
 
 	@Test
-	public void couchbaseIsUp() {
-		RxJavaCouchbaseOperations rxJavaCouchbaseOperations = mock(
-				RxJavaCouchbaseOperations.class);
-		AsyncBucketManager asyncBucketManager = mockAsyncBucketManager(
-				rxJavaCouchbaseOperations);
-		BucketInfo info = mock(BucketInfo.class);
-		InetAddress node1Address = mock(InetAddress.class);
-		InetAddress node2Address = mock(InetAddress.class);
-		given(info.nodeList()).willReturn(Arrays.asList(node1Address, node2Address));
-		given(node1Address.toString()).willReturn("127.0.0.1");
-		given(node2Address.toString()).willReturn("127.0.0.2");
-		given(asyncBucketManager.info()).willReturn(Observable.just(info));
-		CouchbaseReactiveHealthIndicator couchbaseReactiveHealthIndicator = new CouchbaseReactiveHealthIndicator(
-				rxJavaCouchbaseOperations);
-		Mono<Health> health = couchbaseReactiveHealthIndicator.health();
-		StepVerifier.create(health).consumeNextWith((h) -> {
-			assertThat(h.getStatus()).isEqualTo(Status.UP);
-			assertThat(h.getDetails()).containsKeys("versions", "nodes");
-			assertThat(h.getDetails().get("versions")).isEqualTo("5.5.0,6.0.0");
-			assertThat(h.getDetails().get("nodes")).isEqualTo("127.0.0.1,127.0.0.2");
-		}).verifyComplete();
+	@SuppressWarnings("unchecked")
+	void couchbaseClusterIsUp() {
+		Cluster cluster = mock(Cluster.class);
+		CouchbaseReactiveHealthIndicator healthIndicator = new CouchbaseReactiveHealthIndicator(cluster);
+		Map<ServiceType, List<EndpointDiagnostics>> endpoints = Collections.singletonMap(ServiceType.KV,
+				Collections.singletonList(new EndpointDiagnostics(ServiceType.KV, EndpointState.CONNECTED, "127.0.0.1",
+						"127.0.0.1", Optional.empty(), Optional.of(1234L), Optional.of("endpoint-1"))));
+		DiagnosticsResult diagnostics = new DiagnosticsResult(endpoints, "test-sdk", "test-id");
+		given(cluster.diagnostics()).willReturn(diagnostics);
+		Health health = healthIndicator.health().block(Duration.ofSeconds(30));
+		assertThat(health.getStatus()).isEqualTo(Status.UP);
+		assertThat(health.getDetails()).containsEntry("sdk", "test-sdk");
+		assertThat(health.getDetails()).containsKey("endpoints");
+		assertThat((List<Map<String, Object>>) health.getDetails().get("endpoints")).hasSize(1);
+		verify(cluster).diagnostics();
 	}
 
 	@Test
-	public void couchbaseIsDown() {
-		RxJavaCouchbaseOperations rxJavaCouchbaseOperations = mock(
-				RxJavaCouchbaseOperations.class);
-		AsyncBucketManager asyncBucketManager = mockAsyncBucketManager(
-				rxJavaCouchbaseOperations);
-		given(asyncBucketManager.info())
-				.willReturn(Observable.error(new TranscodingException("Failure")));
-		CouchbaseReactiveHealthIndicator couchbaseReactiveHealthIndicator = new CouchbaseReactiveHealthIndicator(
-				rxJavaCouchbaseOperations);
-		Mono<Health> health = couchbaseReactiveHealthIndicator.health();
-		StepVerifier.create(health).consumeNextWith((h) -> {
-			assertThat(h.getStatus()).isEqualTo(Status.DOWN);
-			assertThat(h.getDetails()).containsOnlyKeys("error");
-			assertThat(h.getDetails().get("error"))
-					.isEqualTo(TranscodingException.class.getName() + ": Failure");
-		}).verifyComplete();
-	}
-
-	private AsyncBucketManager mockAsyncBucketManager(
-			RxJavaCouchbaseOperations rxJavaCouchbaseOperations) {
-		ClusterInfo clusterInfo = mock(ClusterInfo.class);
-		given(rxJavaCouchbaseOperations.getCouchbaseClusterInfo())
-				.willReturn(clusterInfo);
-		given(clusterInfo.getAllVersions())
-				.willReturn(Arrays.asList(new Version(5, 5, 0), new Version(6, 0, 0)));
-		Bucket bucket = mock(Bucket.class);
-		BucketManager bucketManager = mock(BucketManager.class);
-		AsyncBucketManager asyncBucketManager = mock(AsyncBucketManager.class);
-		given(rxJavaCouchbaseOperations.getCouchbaseBucket()).willReturn(bucket);
-		given(bucket.bucketManager()).willReturn(bucketManager);
-		given(bucketManager.async()).willReturn(asyncBucketManager);
-		return asyncBucketManager;
+	@SuppressWarnings("unchecked")
+	void couchbaseClusterIsDown() {
+		Cluster cluster = mock(Cluster.class);
+		CouchbaseReactiveHealthIndicator healthIndicator = new CouchbaseReactiveHealthIndicator(cluster);
+		Map<ServiceType, List<EndpointDiagnostics>> endpoints = Collections.singletonMap(ServiceType.KV,
+				Arrays.asList(
+						new EndpointDiagnostics(ServiceType.KV, EndpointState.CONNECTED, "127.0.0.1", "127.0.0.1",
+								Optional.empty(), Optional.of(1234L), Optional.of("endpoint-1")),
+						new EndpointDiagnostics(ServiceType.KV, EndpointState.CONNECTING, "127.0.0.1", "127.0.0.1",
+								Optional.empty(), Optional.of(1234L), Optional.of("endpoint-2"))));
+		DiagnosticsResult diagnostics = new DiagnosticsResult(endpoints, "test-sdk", "test-id");
+		given(cluster.diagnostics()).willReturn(diagnostics);
+		Health health = healthIndicator.health().block(Duration.ofSeconds(30));
+		assertThat(health.getStatus()).isEqualTo(Status.DOWN);
+		assertThat(health.getDetails()).containsEntry("sdk", "test-sdk");
+		assertThat(health.getDetails()).containsKey("endpoints");
+		assertThat((List<Map<String, Object>>) health.getDetails().get("endpoints")).hasSize(2);
+		verify(cluster).diagnostics();
 	}
 
 }

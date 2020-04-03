@@ -1,11 +1,11 @@
 /*
- * Copyright 2012-2018 the original author or authors.
+ * Copyright 2012-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,6 +17,7 @@
 package org.springframework.boot.actuate.autoconfigure.metrics.export.elastic;
 
 import io.micrometer.core.instrument.Clock;
+import io.micrometer.core.ipc.http.HttpUrlConnectionSender;
 import io.micrometer.elastic.ElasticConfig;
 import io.micrometer.elastic.ElasticMeterRegistry;
 
@@ -38,29 +39,37 @@ import org.springframework.context.annotation.Configuration;
  * {@link EnableAutoConfiguration Auto-configuration} for exporting metrics to Elastic.
  *
  * @author Andy Wilkinson
+ * @author Artsiom Yudovin
  * @since 2.1.0
  */
-@Configuration
-@AutoConfigureBefore({ CompositeMeterRegistryAutoConfiguration.class,
-		SimpleMetricsExportAutoConfiguration.class })
+@Configuration(proxyBeanMethods = false)
+@AutoConfigureBefore({ CompositeMeterRegistryAutoConfiguration.class, SimpleMetricsExportAutoConfiguration.class })
 @AutoConfigureAfter(MetricsAutoConfiguration.class)
 @ConditionalOnBean(Clock.class)
 @ConditionalOnClass(ElasticMeterRegistry.class)
-@ConditionalOnProperty(prefix = "management.metrics.export.elastic", name = "enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(prefix = "management.metrics.export.elastic", name = "enabled", havingValue = "true",
+		matchIfMissing = true)
 @EnableConfigurationProperties(ElasticProperties.class)
 public class ElasticMetricsExportAutoConfiguration {
 
-	@Bean
-	@ConditionalOnMissingBean
-	public ElasticConfig elasticConfig(ElasticProperties elasticProperties) {
-		return new ElasticPropertiesConfigAdapter(elasticProperties);
+	private final ElasticProperties properties;
+
+	public ElasticMetricsExportAutoConfiguration(ElasticProperties properties) {
+		this.properties = properties;
 	}
 
 	@Bean
 	@ConditionalOnMissingBean
-	public ElasticMeterRegistry elasticMeterRegistry(ElasticConfig elasticConfig,
-			Clock clock) {
-		return new ElasticMeterRegistry(elasticConfig, clock);
+	public ElasticConfig elasticConfig() {
+		return new ElasticPropertiesConfigAdapter(this.properties);
+	}
+
+	@Bean
+	@ConditionalOnMissingBean
+	public ElasticMeterRegistry elasticMeterRegistry(ElasticConfig elasticConfig, Clock clock) {
+		return ElasticMeterRegistry.builder(elasticConfig).clock(clock).httpClient(
+				new HttpUrlConnectionSender(this.properties.getConnectTimeout(), this.properties.getReadTimeout()))
+				.build();
 	}
 
 }

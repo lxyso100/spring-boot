@@ -1,11 +1,11 @@
 /*
- * Copyright 2012-2018 the original author or authors.
+ * Copyright 2012-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -27,8 +27,10 @@ import org.springframework.beans.factory.BeanFactory;
 import org.springframework.context.annotation.Conditional;
 
 /**
- * {@link Conditional} that only matches when no beans of the specified classes and/or
- * with the specified names are already contained in the {@link BeanFactory}.
+ * {@link Conditional @Conditional} that only matches when no beans meeting the specified
+ * requirements are already contained in the {@link BeanFactory}. None of the requirements
+ * must be met for the condition to match and the requirements do not have to be met by
+ * the same bean.
  * <p>
  * When placed on a {@code @Bean} method, the bean class defaults to the return type of
  * the factory method:
@@ -55,6 +57,7 @@ import org.springframework.context.annotation.Conditional;
  *
  * @author Phillip Webb
  * @author Andy Wilkinson
+ * @since 1.0.0
  */
 @Target({ ElementType.TYPE, ElementType.METHOD })
 @Retention(RetentionPolicy.RUNTIME)
@@ -112,5 +115,15 @@ public @interface ConditionalOnMissingBean {
 	 * @return the search strategy
 	 */
 	SearchStrategy search() default SearchStrategy.ALL;
+
+	/**
+	 * Additional classes that may contain the specified bean types within their generic
+	 * parameters. For example, an annotation declaring {@code value=Name.class} and
+	 * {@code parameterizedContainer=NameRegistration.class} would detect both
+	 * {@code Name} and {@code NameRegistration<Name>}.
+	 * @return the container types
+	 * @since 2.1.0
+	 */
+	Class<?>[] parameterizedContainer() default {};
 
 }

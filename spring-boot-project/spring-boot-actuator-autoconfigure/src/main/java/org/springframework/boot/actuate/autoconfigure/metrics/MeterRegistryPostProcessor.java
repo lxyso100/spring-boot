@@ -1,11 +1,11 @@
 /*
- * Copyright 2012-2018 the original author or authors.
+ * Copyright 2012-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,16 +16,15 @@
 
 package org.springframework.boot.actuate.autoconfigure.metrics;
 
-import java.util.List;
-import java.util.stream.Collectors;
-
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.binder.MeterBinder;
+import io.micrometer.core.instrument.composite.CompositeMeterRegistry;
 import io.micrometer.core.instrument.config.MeterFilter;
 
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.config.BeanPostProcessor;
+import org.springframework.context.ApplicationContext;
 
 /**
  * {@link BeanPostProcessor} that delegates to a lazily created
@@ -47,19 +46,20 @@ class MeterRegistryPostProcessor implements BeanPostProcessor {
 
 	private volatile MeterRegistryConfigurer configurer;
 
-	MeterRegistryPostProcessor(ObjectProvider<MeterBinder> meterBinders,
-			ObjectProvider<MeterFilter> meterFilters,
+	private final ApplicationContext applicationContext;
+
+	MeterRegistryPostProcessor(ObjectProvider<MeterBinder> meterBinders, ObjectProvider<MeterFilter> meterFilters,
 			ObjectProvider<MeterRegistryCustomizer<?>> meterRegistryCustomizers,
-			ObjectProvider<MetricsProperties> metricsProperties) {
+			ObjectProvider<MetricsProperties> metricsProperties, ApplicationContext applicationContext) {
 		this.meterBinders = meterBinders;
 		this.meterFilters = meterFilters;
 		this.meterRegistryCustomizers = meterRegistryCustomizers;
 		this.metricsProperties = metricsProperties;
+		this.applicationContext = applicationContext;
 	}
 
 	@Override
-	public Object postProcessAfterInitialization(Object bean, String beanName)
-			throws BeansException {
+	public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
 		if (bean instanceof MeterRegistry) {
 			getConfigurer().configure((MeterRegistry) bean);
 		}
@@ -68,16 +68,13 @@ class MeterRegistryPostProcessor implements BeanPostProcessor {
 
 	private MeterRegistryConfigurer getConfigurer() {
 		if (this.configurer == null) {
-			this.configurer = new MeterRegistryConfigurer(
-					asOrderedList(this.meterBinders), asOrderedList(this.meterFilters),
-					asOrderedList(this.meterRegistryCustomizers),
-					this.metricsProperties.getObject().isUseGlobalRegistry());
+			boolean hasCompositeMeterRegistry = this.applicationContext
+					.getBeanNamesForType(CompositeMeterRegistry.class, false, false).length != 0;
+			this.configurer = new MeterRegistryConfigurer(this.meterRegistryCustomizers, this.meterFilters,
+					this.meterBinders, this.metricsProperties.getObject().isUseGlobalRegistry(),
+					hasCompositeMeterRegistry);
 		}
 		return this.configurer;
-	}
-
-	private <T> List<T> asOrderedList(ObjectProvider<T> provider) {
-		return provider.orderedStream().collect(Collectors.toList());
 	}
 
 }
